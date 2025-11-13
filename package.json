@@ -1,0 +1,24 @@
+{
+  "name": "rust-rcon-heartbeat-monitor",
+  "version": "1.0.0",
+  "description": "TCP-based heartbeat monitor for Rust game servers using RCON protocol",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "rust",
+    "rcon",
+    "heartbeat",
+    "monitor",
+    "uptime",
+    "tcp"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "dotenv": "^17.2.3",
+    "rcon-client": "^4.2.5"
+  }
+}
