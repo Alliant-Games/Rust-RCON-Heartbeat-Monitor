@@ -1,6 +1,6 @@
 # Rust RCON Heartbeat Monitor
 
-A TCP-based heartbeat monitor for Rust game servers using RCON protocol. This monitor is designed to be more firewall-friendly than UDP-based game query approaches.
+A TCP-based heartbeat monitor for Rust game servers supporting both Classic RCON and WebRCON protocols. This monitor is designed to be more firewall-friendly than UDP-based game query approaches.
 
 ## Why TCP/RCON Instead of UDP?
 
@@ -14,7 +14,8 @@ This RCON-based monitor uses **TCP connections** which are generally more firewa
 
 ## Features
 
-- **TCP-based RCON protocol** for reliable server connectivity checks
+- **Dual protocol support** - Classic RCON (TCP) and WebRCON (WebSocket)
+- **Automatic protocol detection** - Configurable transport for your server setup
 - **Automatic retry logic** with configurable attempts per cycle
 - **Jitter between retries** to avoid triggering anti-DDoS patterns
 - **Consecutive failure threshold** to prevent false-positive "down" alerts
@@ -61,6 +62,13 @@ nano .env
 - `RCON_PASSWORD` - Your RCON password
 - `UPTIME_ENDPOINT` - URL to receive heartbeat POST requests
 
+### Transport Configuration
+
+- `RCON_TRANSPORT=web` - Protocol to use: `web` for WebRCON (WebSocket), `classic` for traditional TCP RCON
+  - Use `web` if your server has `rcon.web 1` in server.cfg
+  - Use `classic` if your server has `rcon.web 0` or RCON is TCP-only
+- `RCON_SECURE=false` - For WebRCON only: `true` for wss://, `false` for ws://
+
 ### Optional Variables (with defaults)
 
 - `CHECK_INTERVAL=60` - Seconds between monitoring cycles
@@ -69,6 +77,20 @@ nano .env
 - `JITTER_MS=300` - Maximum random delay (ms) between retry attempts
 - `CONSECUTIVE_FAILURES_THRESHOLD=2` - Failed cycles before marking as "down"
 - `RCON_COMMAND=status` - RCON command to execute for health check
+
+### Determining Your RCON Type
+
+Check your Rust server's configuration to determine which transport to use:
+
+**WebRCON (RCON_TRANSPORT=web)**
+- Server has `rcon.web 1` in server.cfg
+- Most modern hosting providers use WebRCON
+- Uses WebSocket protocol (ws:// or wss://)
+
+**Classic RCON (RCON_TRANSPORT=classic)**
+- Server has `rcon.web 0` or no rcon.web setting
+- Traditional TCP-based RCON
+- Uses Source RCON protocol over TCP
 
 ## Usage
 
@@ -137,19 +159,39 @@ build   : 2345...
 
 ## Troubleshooting
 
+### "Timeout for packet id 0" Error (Classic RCON)
+This error means you're trying to use Classic RCON against a WebRCON server:
+- Check if your server has `rcon.web 1` in server.cfg
+- If yes, change `RCON_TRANSPORT=web` in your `.env` file
+- Restart the monitor
+
+### WebRCON Connection Closed Before Auth
+- Verify your RCON password is correct
+- Check that `RCON_TRANSPORT=web` is set
+- Try `RCON_SECURE=false` if using wss:// fails
+
 ### Connection Refused
 - Verify RCON is enabled in your server configuration
 - Check that the RCON port is correct (typically 28016)
-- Ensure firewall allows TCP connections to the RCON port
+- Ensure firewall allows connections to the RCON port
+- For WebRCON: verify WebSocket connections are allowed
 
 ### Authentication Failed
 - Double-check your RCON password in `.env`
 - Verify the password matches your server's RCON configuration
+- Ensure no special characters are causing parsing issues
 
 ### Timeout Errors
 - Increase `TIMEOUT_MS` if your server/network has high latency
 - Check network connectivity between monitor and server
 - Verify the server is actually running
+- For WebRCON: ensure WebSocket connections aren't being blocked
+
+### Wrong Transport Type
+If you see consistent timeouts or connection errors:
+1. Check your server's `rcon.web` setting
+2. Set `RCON_TRANSPORT=web` if `rcon.web 1`
+3. Set `RCON_TRANSPORT=classic` if `rcon.web 0` or unset
 
 ### False "Down" Alerts
 - Increase `CONSECUTIVE_FAILURES_THRESHOLD` to require more failed cycles
